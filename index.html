@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Signal Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a traffic-operations console. Control strip, a 3×2 wall of live junction feeds, race chart + leaderboard beside it; tiles open into a full detail desk. */
+:root {
+  --bg: #eef1f1; --panel: #ffffff; --ink: #172024; --muted: #5a676c; --line: #d3dadb; --road: #c4cccf; --lane: #ffffff;
+  --accent: #c97a00; --go: #1d8f4e; --stop: #cf3a2a; --wait: #d9543f; --car: #2a3439;
+  --ga: #c93d5b; --aco: #7b56b8; --pso: #2477c0; --sa: #148a7d; --cma: #c97a00; --mp: #9a3f8c; --base: #879297;
+  --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #101518; --panel: #182024; --ink: #e5ecee; --muted: #93a2a8; --line: #29343a; --road: #2c373c; --lane: #46545a;
+  --accent: #f0a21a; --go: #36c171; --stop: #ef5844; --wait: #f06a52; --car: #d5dee1;
+  --ga: #ea6a86; --aco: #a787e0; --pso: #5aa6ea; --sa: #3cc2b1; --cma: #f0a21a; --mp: #d277c4; --base: #7f8c92; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #101518; --panel: #182024; --ink: #e5ecee; --muted: #93a2a8; --line: #29343a; --road: #2c373c; --lane: #46545a;
+  --accent: #f0a21a; --go: #36c171; --stop: #ef5844; --wait: #f06a52; --car: #d5dee1;
+  --ga: #ea6a86; --aco: #a787e0; --pso: #5aa6ea; --sa: #3cc2b1; --cma: #f0a21a; --mp: #d277c4; --base: #7f8c92; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; }
+.wrap { max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: .01em; text-wrap: balance; margin: 0; line-height: 1.1; }
+h1 { font-size: clamp(34px, 5vw, 52px); font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
+h2 { font-size: 24px; text-transform: uppercase; letter-spacing: .04em; }
+h3 { font-size: 19px; }
+p { margin: 0; }
+.label { font: 500 11px/1.2 var(--body); text-transform: uppercase; letter-spacing: .09em; color: var(--muted); }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+button, select, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { display: flex; flex-wrap: wrap; gap: 12px 32px; align-items: end; justify-content: space-between; border-bottom: 3px solid var(--ink); padding-bottom: 14px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.lamp { display: grid; gap: 4px; padding: 6px 5px; background: var(--ink); border-radius: 6px; }
+.lamp i { width: 11px; height: 11px; border-radius: 50%; background: var(--muted); opacity: .35; display: block; }
+.lamp i:nth-child(1) { background: var(--stop); opacity: 1; } .lamp i:nth-child(3) { background: var(--go); }
+.lamp.go i:nth-child(1) { opacity: .3; } .lamp.go i:nth-child(3) { opacity: 1; }
+.lede { max-width: 62ch; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 500 12px/1 var(--body); padding: 6px 9px; border-radius: 3px; border: 1px solid var(--line); background: var(--panel); white-space: nowrap; }
+.chip b { font-weight: 600; }
+.chip.beyond { border-color: var(--accent); color: var(--accent); }
+
+.controls { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: end; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field select, .field input[type=number] { background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; }
+.field input[type=number] { width: 90px; }
+.field .row { display: flex; align-items: center; gap: 8px; }
+input[type=range] { accent-color: var(--accent); width: 130px; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.btn { border: 1px solid var(--line); background: var(--bg); border-radius: 4px; padding: 8px 14px; font-weight: 500; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); font-weight: 600; min-width: 92px; }
+.btn.small { padding: 5px 10px; font-size: 13px; }
+
+.main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 980px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 640px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; text-align: left; padding: 0; transition: border-color .15s, transform .15s; }
+.tile:hover { border-color: var(--c); transform: translateY(-1px); }
+.tile .bar { height: 4px; background: var(--c); }
+.tile .hd { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px 10px 2px; }
+.tile .nm { white-space: nowrap; font: 600 17px/1.1 var(--display); text-transform: uppercase; letter-spacing: .03em; }
+.tile .tag { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.tile canvas { width: 100%; aspect-ratio: 1; display: block; max-width: 100%; }
+.tile .ft { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 10px 9px; gap: 6px; }
+.tile .score { font: 500 20px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.tile .score small { font-size: 11px; color: var(--muted); font-family: var(--body); }
+.tile .sub { font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap; }
+.tile .score { white-space: nowrap; }
+.tile .open { font-size: 11px; color: var(--muted); }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card .hdr { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.chart { width: 100%; height: 290px; display: block; }
+.side { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font: 500 11px/1.2 var(--body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td.r, th.r { text-align: right; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 7px; vertical-align: -1px; }
+.delta.good { color: var(--go); } .delta.bad { color: var(--stop); }
+.meter { height: 6px; background: var(--bg); border-radius: 3px; min-width: 60px; position: relative; overflow: hidden; }
+.meter span { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
+.progress { height: 4px; background: var(--bg); border-radius: 2px; overflow: hidden; }
+.progress span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.note { color: var(--muted); font-size: 13px; }
+.status { font-size: 12px; color: var(--muted); }
+
+.lower { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 980px) { .lower { grid-template-columns: minmax(0, 1fr); } }
+.model dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: 13px; }
+.model dt { color: var(--muted); } .model dd { margin: 0; }
+
+/* Detail desk */
+.overlay { position: fixed; inset: 0; z-index: 50; background: color-mix(in srgb, var(--bg) 70%, transparent); backdrop-filter: blur(4px);
+  padding: calc(env(safe-area-inset-top, 0px) + 16px) max(12px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 16px) max(12px, env(safe-area-inset-left, 0px)); overflow-y: auto; }
+.desk { max-width: 1280px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-top: 5px solid var(--c); border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 18px; }
+.desk-hd { display: flex; justify-content: space-between; align-items: start; gap: 14px; flex-wrap: wrap; }
+.desk-hd h2 { font-size: 34px; }
+.desk-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(250px, .8fr); gap: 18px; }
+@media (max-width: 1080px) { .desk-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (max-width: 700px) { .desk-grid { grid-template-columns: minmax(0, 1fr); } }
+.pane { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pane canvas { width: 100%; display: block; border-radius: 4px; max-width: 100%; }
+#dSim { aspect-ratio: 1; }
+#dSpace { aspect-ratio: 1; }
+#dConv { height: 170px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.stat { background: var(--bg); border-radius: 4px; padding: 7px 9px; min-width: 0; }
+.stat .v { font: 500 17px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+.params { display: flex; flex-direction: column; gap: 12px; }
+.param { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; }
+.param label { font-weight: 500; font-size: 13px; }
+.param output { font: 500 13px var(--mono); }
+.param input { grid-column: 1 / -1; width: 100%; }
+.param small { grid-column: 1 / -1; color: var(--muted); font-size: 11.5px; line-height: 1.35; }
+.how { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 800px) { .how { grid-template-columns: minmax(0, 1fr); } }
+.how p { max-width: 68ch; }
+.how ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.plan { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.plan div { background: var(--bg); border-radius: 4px; padding: 6px 8px; font: 12px/1.45 var(--mono); font-variant-numeric: tabular-nums; min-width: 0; }
+.plan b { font-family: var(--body); font-weight: 600; font-size: 11px; color: var(--muted); display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 11.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+body.simple .only-t, body:not(.simple) .only-s { display: none !important; }
+.hside { display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
+@media (max-width: 700px) { .hside { align-items: flex-start; } }
+.seg { display: inline-flex; align-items: center; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 4px 4px 12px; }
+.seg .label { margin-right: 6px; }
+.seg button { border: 0; background: transparent; border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: 13px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.guide { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 860px) { .guide { grid-template-columns: minmax(0, 1fr); } }
+.gcard { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; position: relative; min-width: 0; }
+.gcard p { font-size: 14.5px; }
+.gnum { position: absolute; top: 12px; right: 14px; font: 700 34px/1 var(--display); color: var(--line); }
+.score-explain { background: var(--bg); border-radius: 4px; padding: 8px 10px; }
+.now { font-size: 16px; line-height: 1.5; padding: 12px 16px; border-left: 4px solid var(--accent); background: var(--panel); border-radius: 0 6px 6px 0; }
+.now b { font-weight: 600; }
+.tile .nick { padding: 0 10px; font-size: 11.5px; color: var(--muted); margin-top: -2px; }
+.tile .prog { height: 3px; background: var(--bg); margin: 0 10px; border-radius: 2px; overflow: hidden; }
+.tile .prog span { display: block; height: 100%; background: var(--c); width: 0; }
+.plain { background: var(--bg); border-radius: 6px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; border-left: 4px solid var(--c); }
+.plain .idea { font: 600 22px/1.2 var(--display); }
+.plain p { max-width: 80ch; font-size: 15px; }
+.plainlist { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
+@media (prefers-reduced-motion: reduce) { .tile { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="lamp" id="lamp" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div>
+        <h1>Signal Lab</h1>
+        <p class="lede only-s">Nine crossroads, lots of cars, and six different “brains” competing to set the traffic lights so cars wait as little as possible. Everything below is running live.</p>
+        <p class="lede only-t">Five metaheuristics race to retime the traffic signals of a 3×3 city grid, against an adaptive real-time controller. Every feed below is the live simulation of the best plan each one has found so far.</p>
+      </div>
+    </div>
+    <div class="hside">
+      <div class="seg" role="group" aria-label="How to explain things">
+        <span class="label">Explain it</span>
+        <button type="button" id="mSimple" aria-pressed="true">Simply</button>
+        <button type="button" id="mTech" aria-pressed="false">Technically</button>
+      </div>
+      <div class="chips">
+        <span class="chip"><b data-s="In our syllabus:" data-t="Syllabus:"></b> GA · ACO · PSO · SA</span>
+        <span class="chip beyond"><b>Beyond syllabus:</b> CMA-ES · Max-Pressure</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="guide only-s" aria-label="How to read this page">
+    <div class="gcard">
+      <span class="gnum">1</span>
+      <h3>The city</h3>
+      <p>Nine crossroads in a grid. Cars enter from the edges and mostly drive straight. Every light takes turns: north–south green, then east–west green, once a minute.</p>
+      <div class="legend"><span><i style="background:var(--wait)"></i>Waiting car</span><span><i style="background:var(--car)"></i>Moving car</span><span><i style="background:var(--go)"></i>Green</span><span><i style="background:var(--stop)"></i>Red</span><span><i style="background:var(--accent)"></i>Changing</span></div>
+    </div>
+    <div class="gcard">
+      <span class="gnum">2</span>
+      <h3>The puzzle</h3>
+      <p>For each crossroad we choose how long each direction gets green, and when its cycle starts. That’s 18 dials. Set them well and cars ride a “green wave” through several lights in a row.</p>
+      <p class="score-explain">Score = how long an average car waits at red lights. <b>Lower is better.</b></p>
+    </div>
+    <div class="gcard">
+      <span class="gnum">3</span>
+      <h3>The contestants</h3>
+      <p>Five search methods copied from nature, plus a “traffic cop” that just reacts. Each searcher gets the same 3,000 tries in the simulator. <b>Tap any box</b> to see how it thinks and change its settings.</p>
+    </div>
+  </section>
+
+  <p class="now" id="now" aria-live="polite"></p>
+
+  <section class="controls" aria-label="Experiment settings">
+    <div class="field"><label class="label" for="scen" data-s="Traffic pattern" data-t="Scenario"></label><select id="scen"></select></div>
+    <div class="field"><label class="label" for="demand" data-s="How busy" data-t="Demand"></label><div class="row"><input type="range" id="demand" min="0.6" max="1.4" step="0.05" value="1"><output id="demandV" class="num">100%</output></div></div>
+    <div class="field"><label class="label" for="budget" data-s="Tries allowed" data-t="Evaluation budget"></label><select id="budget"><option>1000</option><option>2000</option><option selected>3000</option><option>5000</option></select></div>
+    <div class="field"><label class="label" for="speed" data-s="Thinking speed" data-t="Search speed"></label><div class="row"><input type="range" id="speed" min="1" max="20" step="1" value="3"><output id="speedV" class="num">3/frame</output></div></div>
+    <div class="field"><label class="label" for="simspeed" data-s="Animation speed" data-t="Traffic playback"></label><div class="row"><input type="range" id="simspeed" min="1" max="8" step="1" value="2"><output id="simspeedV" class="num">2×</output></div></div>
+    <div class="field"><label class="label" for="seed" data-s="Random start" data-t="Seed"></label><input type="number" id="seed" value="42" min="1"></div>
+    <div class="btns">
+      <button class="btn primary" id="runBtn">Pause</button>
+      <button class="btn" id="resetBtn" data-s="Start again" data-t="Restart race"></button>
+    </div>
+  </section>
+  <p class="note" id="scenNote"></p>
+
+  <section class="main">
+    <div class="tiles" id="tiles"></div>
+    <div class="side">
+      <div class="card">
+        <div class="hdr"><h3 data-s="Who is learning fastest?" data-t="Convergence race"></h3><span class="label" id="raceStatus">Running</span></div>
+        <canvas class="chart" id="chart" aria-label="Best average wait against tries for each method"></canvas>
+        <p class="note only-s">Each line is one method’s best score so far. Left to right = more tries used. Lower = cars wait less. The grey dashed line is ordinary, untuned lights; the purple one is the traffic cop.</p>
+        <p class="note only-t">Best average delay found so far, per vehicle, against the number of simulations each algorithm has spent. Every algorithm gets the same budget. The dashed lines are the untuned 50/50 plan and the adaptive Max-Pressure controller.</p>
+      </div>
+      <div class="card">
+        <div class="hdr"><h3 data-s="Scoreboard" data-t="Leaderboard"></h3><span class="label" data-s="Less waiting wins" data-t="Lower delay is better"></span></div>
+        <div class="scroll"><table id="board"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="card">
+      <div class="hdr"><h3 data-s="Luck check" data-t="Robustness benchmark"></h3><span class="label" id="benchLbl">Precomputed · default parameters · 10 seeds</span></div>
+      <p class="note only-s">One race can be lucky. This runs every method again and again from different random starting points. A good method wins <b>and</b> gives similar results every time (small “±” number).</p>
+      <p class="note only-t">One run can be lucky. This repeats every optimiser across several random seeds with the settings above and your current parameters, then reports the spread.</p>
+      <div class="row" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <select id="benchRuns" aria-label="Repeats per method"><option value="5">5 repeats</option><option value="10" selected>10 repeats</option><option value="20">20 repeats</option></select>
+        <button class="btn" id="benchBtn" data-s="Run the luck check" data-t="Run benchmark"></button>
+        <span class="status" id="benchStatus"></span>
+      </div>
+      <div class="progress"><span id="benchProg"></span></div>
+      <div class="scroll"><table id="benchTable"></table></div>
+    </div>
+    <div class="card model">
+      <h3 data-s="How the pretend city works" data-t="The model"></h3>
+      <ul class="only-s plainlist">
+        <li>A light gives green to one direction at a time, in a 60-second loop. Every switch wastes 3 seconds of amber.</li>
+        <li>On green, about one car every 2 seconds gets through. Driving to the next crossroad takes 8 seconds.</li>
+        <li>Most cars go straight; a few turn left or right. Cars drive on the left, like in India.</li>
+        <li>Traffic builds up to a rush in the middle of a 15-minute window.</li>
+        <li>One “try” = simulating all 15 minutes with one set of light timings. A computer does this in under a millisecond.</li>
+      </ul>
+      <dl class="only-t">
+        <dt>Network</dt><dd>3×3 grid, 9 signalised junctions, 36 approaches. Traffic drives on the left.</dd>
+        <dt>Decision vector</dt><dd>18 numbers: a north–south green split and a cycle offset per junction.</dd>
+        <dt>Signals</dt><dd>60 s cycle, two phases, 3 s amber + all-red lost per phase.</dd>
+        <dt>Flow</dt><dd>Store-and-forward queues, 1800 veh/h saturation flow, 8 s link travel, 76% straight / 12% left / 12% right.</dd>
+        <dt>Demand</dt><dd>15-minute peak profile entering from the grid edges.</dd>
+        <dt>Objective</dt><dd>Average delay per vehicle (s). Vehicles still queued at the end are charged 90 s.</dd>
+        <dt>One evaluation</dt><dd>A full 900-second simulation, about 0.4 ms in the browser.</dd>
+      </dl>
+    </div>
+  </section>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="desk" id="desk" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+    <div class="desk-hd">
+      <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+        <span class="label" id="dKind"></span>
+        <h2 id="dTitle"></h2>
+      </div>
+      <div class="btns" style="margin-left:0">
+        <button class="btn small" id="dPrev" aria-label="Previous method">← Prev</button>
+        <button class="btn small" id="dNext" aria-label="Next method">Next →</button>
+        <button class="btn small primary" id="dClose">Close</button>
+      </div>
+    </div>
+    <div class="plain only-s" id="dPlain"></div>
+    <div class="stats" id="dStats"></div>
+    <div class="desk-grid">
+      <div class="pane">
+        <div class="hdr" style="display:flex;justify-content:space-between;gap:8px"><span class="label" data-s="The city with its best lights so far" data-t="Live junction feed · best plan"></span><span class="label num" id="dClock"></span></div>
+        <canvas id="dSim"></canvas>
+        <div class="legend"><span><i style="background:var(--wait)"></i><span data-s="Waiting car" data-t="Queued"></span></span><span><i style="background:var(--car)"></i><span data-s="Moving car" data-t="Moving"></span></span><span><i style="background:var(--go)"></i>Green</span><span><i style="background:var(--stop)"></i>Red</span><span><i style="background:var(--accent)"></i><span data-s="Changing" data-t="Amber"></span></span></div>
+      </div>
+      <div class="pane">
+        <span class="label" id="dSpaceLbl"></span>
+        <canvas id="dSpace"></canvas>
+        <p class="note" id="dSpaceNote" style="font-size:12.5px"></p>
+      </div>
+      <div class="pane">
+        <span class="label" data-s="Play with its settings" data-t="Parameters"></span>
+        <div class="params" id="dParams"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn primary small" id="dApply" data-s="Try these settings" data-t="Apply &amp; rerun"></button>
+          <button class="btn small" id="dDefaults" data-s="Reset" data-t="Defaults"></button>
+        </div>
+        <p class="status" id="dApplyNote" data-s="Only this method starts again, so you can compare it with the others." data-t="Changes restart only this algorithm. The race chart and benchmark use them too."></p>
+      </div>
+    </div>
+    <div class="desk-grid" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1.8fr)">
+      <div class="pane"><span class="label" data-s="Its score over time (lower is better)" data-t="This algorithm's convergence"></span><canvas id="dConv"></canvas></div>
+      <div class="pane"><span class="label" id="dPlanLbl"></span><div class="plan" id="dPlan"></div></div>
+    </div>
+    <div class="how">
+      <div class="pane"><h3 data-s="The idea" data-t="How it works here"></h3><p id="dHow"></p></div>
+      <div class="pane"><h3 data-s="What it does each round" data-t="One iteration"></h3><ol id="dSteps"></ol></div>
+    </div>
+  </div>
+</div>
+
+<script src="core.js"></script>
+<script src="bench.js"></script>
+<script>
+(() => {
+'use strict';
+const { ALGOS, MP_PARAMS, SCENARIOS, Sim, Run, makeContext, evaluate, evaluateMaxPressure, baselineX, defaults, HEAD, NQ, TAU, N, G, T, C, Y, D, splitSec } = TL;
+const $ = id => document.getElementById(id);
+
+const INFO = {
+  ga: { kind: 'Evolutionary · in syllabus',
+    how: 'Each chromosome is a complete timing plan: 18 genes, a green split and an offset for each of the nine junctions. Better plans are more likely to become parents. Children blend their parents\' genes and get occasional random kicks, so good green waves found in different plans can be combined.',
+    steps: ['Score every plan in the population by simulating 15 minutes of traffic.', 'Copy the best few plans (elites) straight into the next generation.', 'Pick parents by tournament: draw k plans and keep the best.', 'Blend parent genes with BLX-α crossover.', 'Mutate genes with small Gaussian noise; offsets wrap around the cycle.'],
+    space: 'Dots are the current population, coloured by delay (bright is better).' },
+  aco: { kind: 'Swarm intelligence · in syllabus',
+    how: 'Each split and offset is cut into discrete levels, so a timing plan becomes a path through 18 choice points. Ants build plans level by level, preferring levels with more pheromone. Good plans leave pheromone behind and it evaporates over time. This is the MAX-MIN variant: pheromone is clamped between bounds so the colony cannot lock in too early.',
+    steps: ['Each ant picks one level per gene with probability ∝ pheromone^α.', 'Simulate every ant\'s plan.', 'Evaporate all pheromone by a fraction ρ.', 'Reinforce the levels used by the iteration-best and best-so-far ants.', 'Clamp pheromone to [τmin, τmax].'],
+    space: 'Bars along the edges are the pheromone on each level for the centre junction\'s split (bottom) and offset (left).' },
+  pso: { kind: 'Swarm intelligence · in syllabus',
+    how: 'Every particle is a timing plan moving through the 18-dimensional space. Its velocity mixes three things: momentum, a pull back to the best plan it has personally found, and a pull towards the best plan the whole swarm has found. Offsets wrap, so on those axes the space is a ring.',
+    steps: ['v ← w·v + c₁·r₁·(personal best − x) + c₂·r₂·(swarm best − x).', 'Clamp each velocity component to ±vmax.', 'Move the particle and wrap offsets into one cycle.', 'Simulate and update the personal and swarm bests.'],
+    space: 'Dots are particles with a tail showing their velocity. The ring marks the swarm best.' },
+  sa: { kind: 'Single-point search · in syllabus',
+    how: 'A single plan is nudged a few genes at a time. A better neighbour is always accepted. A worse one is accepted with probability e^(−Δ/T), which lets the search climb out of local minima. Temperature cools geometrically across the budget, so it explores early and settles late.',
+    steps: ['Copy the current plan and perturb 1–k genes with Gaussian noise.', 'Simulate the neighbour.', 'Accept if better, or with probability e^(−Δ/T) if worse.', 'Cool T and shrink the step size.'],
+    space: 'The line is the recent path of the current plan. The temperature is shown above.' },
+  cma: { kind: 'Evolution strategy · beyond syllabus',
+    how: 'CMA-ES samples a batch of plans from a multivariate Gaussian, ranks them and moves the mean towards the best half. It also learns the full 18×18 covariance matrix, so it discovers which timings interact, such as the offsets of neighbouring junctions that form a green wave. It sets its own step size σ from the evolution path. It is the standard method for hard continuous black-box problems in research (Hansen & Ostermeier, 2001) but rarely taught in soft-computing courses.',
+    steps: ['Sample λ plans: x = m + σ·B·D·z with z ~ N(0, I).', 'Simulate them and rank by delay.', 'Move the mean m to a weighted average of the best μ.', 'Update the evolution paths, then the covariance with rank-one and rank-μ terms.', 'Grow or shrink σ depending on how far the path has travelled.'],
+    space: 'The ellipse is the 2σ slice of the learned covariance at the current mean.' },
+  mp: { kind: 'Adaptive control · beyond syllabus',
+    how: 'Max-Pressure does not optimise a fixed plan at all. Every second, each junction compares the pressure of its two phases: queues waiting on those approaches minus the queues they would feed downstream. It serves the higher one once the minimum green has passed. It needs no offline tuning and is provably throughput-optimal (Varaiya, 2013), but it reacts locally and cannot plan green waves along a corridor.',
+    steps: ['For each phase, add up upstream queue minus turn-weighted downstream queue.', 'If the other phase\'s pressure exceeds this one by the threshold and minimum green has passed, switch.', 'Run 3 s of amber and all-red, then give green to the new phase.'],
+    space: 'Max-Pressure has no search space. The chart shows the pressure difference at the centre junction over time.' }
+};
+const COLORS = { ga: '--ga', aco: '--aco', pso: '--pso', sa: '--sa', cma: '--cma', mp: '--mp', base: '--base' };
+const IDS = ['ga', 'aco', 'pso', 'sa', 'cma', 'mp'];
+const NAMES = Object.fromEntries(ALGOS.map(a => [a.id, a])); NAMES.mp = { id: 'mp', name: 'Max-Pressure', short: 'Max-Pressure', params: MP_PARAMS };
+
+// Plain-language layer
+const SIMPLE = {
+  ga: { nick: 'Evolution', idea: 'Survival of the fittest, for traffic lights.',
+    how: 'Think of 30 different timing plans as 30 animals. The plans that make cars wait least get to “have children”: a child plan takes some settings from each parent, plus a few random changes, like mutations in nature. Weak plans die out. After many generations, the whole population is full of good plans.',
+    steps: ['Test all 30 plans in the simulator.', 'Keep the 2 best plans exactly as they are.', 'Pick parents: grab 3 random plans, and the best of them wins.', 'Mix two parents’ settings to make a child plan.', 'Randomly tweak a few of the child’s settings.'],
+    space: 'Each dot is one plan in the current population. Bigger, brighter dots make cars wait less.' },
+  aco: { nick: 'Ant colony', idea: 'Follow the scent of good choices.',
+    how: 'Real ants find the shortest path to food by leaving a scent trail. Short paths get walked more often, so their scent gets stronger and more ants follow. Here every dial has 12 possible positions. Ants choose positions with stronger scent more often, the best ants add scent to the positions they chose, and old scent slowly fades away.',
+    steps: ['Each ant builds a plan, picking dial positions with stronger scent more often.', 'Test every ant’s plan.', 'All scent fades a little.', 'The best ants add scent to the positions they used.', 'Scent is kept within limits so the ants keep exploring.'],
+    space: 'The bars along the edges show how much scent each position has for the middle crossroad: bottom for green time, left for when the cycle starts.' },
+  pso: { nick: 'Bird flock', idea: 'Fly towards where you and your friends found food.',
+    how: 'Imagine 24 birds searching a field for food. Each bird remembers the best spot it has found itself, and the whole flock knows the best spot anyone has found. Every moment, each bird turns a little towards both, while keeping some of its own speed. Here each “spot” in the field is a complete set of traffic-light timings.',
+    steps: ['Each bird keeps some of its current speed.', 'It turns a little towards its own best spot.', 'It turns a little towards the flock’s best spot.', 'It moves, and its new plan is tested.'],
+    space: 'Each dot is a bird (one plan). Its tail shows which way it is flying. The ring marks the flock’s best spot.' },
+  sa: { nick: 'Cooling metal', idea: 'Be bold early, careful later.',
+    how: 'Blacksmiths heat metal and cool it slowly so it settles into a strong shape. This method keeps just one plan and keeps nudging it. A better change is always kept. While it is still “hot”, it sometimes keeps a worse change too, so it doesn’t get stuck in a bad corner. As it cools down, it gets picky and only fine-tunes.',
+    steps: ['Nudge one to three dials a little.', 'Test the new plan.', 'Better? Keep it. Worse? Keep it only sometimes, more often while it is hot.', 'Cool down a little and make smaller nudges next time.'],
+    space: 'The line traces where the single plan has wandered recently. “Boldness” (temperature) is shown in the corner.' },
+  cma: { nick: 'Smart learner', idea: 'Learn which dials work together.',
+    how: 'This method throws 12 guesses around its current best idea, keeps the best half, and moves towards them. The clever part is that it spots patterns, like “when crossroad 4 starts late, crossroad 5 should start late too”, and aims its next guesses along that pattern. That pattern is exactly what makes a green wave. Researchers use this method, but it is not in our syllabus.',
+    steps: ['Throw 12 guesses around the current best idea.', 'Test them and rank them.', 'Move the centre towards the best 6.', 'Learn which dials tend to change together.', 'Search wider or narrower depending on progress.'],
+    space: 'The shaded oval is where it will guess next. Its tilt shows the pattern it has learned between the two dials.' },
+  mp: { nick: 'Traffic cop', idea: 'Don’t plan ahead, just react.',
+    how: 'This one does not search at all. Picture a traffic police officer at every crossroad. Every second, each officer looks at the queues and gives green to the direction that is more crowded and has space to move into. It is great when traffic is unpredictable, but each officer only sees their own crossroad, so they can’t coordinate a green wave.',
+    steps: ['Count the cars waiting in each direction.', 'Subtract the cars already stuck where they are heading.', 'If the other direction is clearly busier and this green has lasted at least 10 s, switch.', 'Show amber for 3 seconds, then switch.'],
+    space: 'Above the middle line, north–south is busier; below it, east–west is busier. The officer switches when the line crosses a dashed limit.' }
+};
+const SP_LABEL = {
+  pop: ['How many plans per generation', 'More plans = more variety, but each generation takes longer'],
+  pc: ['How often parents mix', 'Chance a child takes a blend of both parents for each dial'],
+  pm: ['How often mutations happen', 'Chance each dial of a child gets a random tweak'],
+  ms: ['How big mutations are', 'Size of each random tweak'],
+  tour: ['How picky parent selection is', 'Higher = only the very best plans become parents'],
+  elite: ['Best plans copied as-is', 'Guarantees the best plans are never lost'],
+  ants: ['Number of ants per round', 'More ants = more plans tried each round'],
+  levels: ['Positions per dial', 'More positions = finer control, but more to explore'],
+  rho: ['How fast scent fades', 'Faster fading = ants forget old choices sooner'],
+  q: ['Scent left by winners', 'How strongly the best ants mark their choices'],
+  alpha: ['How much ants trust scent', 'Higher = ants follow the crowd more closely'],
+  swarm: ['Number of birds', 'More birds search more of the field at once'],
+  w: ['Momentum', 'How much each bird keeps flying the way it was going'],
+  c1: ['Trust in its own best', 'Pull towards the best spot this bird found'],
+  c2: ['Trust in the flock’s best', 'Pull towards the best spot anyone found'],
+  vmax: ['Speed limit', 'Stops birds from overshooting'],
+  t0: ['Starting boldness', 'Higher = accepts more bad moves at the start'],
+  t1: ['Final boldness', 'How bold it still is at the very end'],
+  sig: ['Size of each nudge', 'How far it moves the dials at the start (shrinks over time)'],
+  dims: ['Dials changed per nudge', 'Most dials it changes in one go'],
+  lam: ['Guesses per round', 'How many plans it tries around its best idea'],
+  sigma0: ['Starting search width', 'How wide the first guesses spread; it adjusts itself after'],
+  minGreen: ['Shortest green allowed (s)', 'Stops the lights from flickering back and forth'],
+  threshold: ['How much busier before switching', 'Extra cars the other direction needs before the cop switches']
+};
+let MODE = 'simple';
+try { const m = localStorage.getItem('signal-lab-mode'); if (m === 'simple' || m === 'tech') MODE = m; } catch (e) {}
+const L = (a, b) => MODE === 'simple' ? a : b;
+const nameOf = id => id === 'base' ? L('Ordinary lights', 'Fixed 50/50 (untuned)') : L(`${SIMPLE[id].nick}`, NAMES[id].name);
+const realOf = id => id === 'mp' ? 'Max-Pressure' : NAMES[id].name;
+const pct = v => isFinite(v) ? Math.round((S.base - v) / S.base * 100) : NaN;
+let lastBench = null;
+function applyMode() {
+  document.body.classList.toggle('simple', MODE === 'simple');
+  document.querySelectorAll('[data-s]').forEach(el => { el.textContent = MODE === 'simple' ? el.dataset.s : el.dataset.t; });
+  $('mSimple').setAttribute('aria-pressed', MODE === 'simple'); $('mTech').setAttribute('aria-pressed', MODE !== 'simple');
+  for (const id of IDS) paintTileHead(id);
+  if (S.ctx) { renderBoard(); renderNow(); }
+  if (lastBench) renderBench(lastBench[0], lastBench[1]);
+  if (S.detail) openDetail(S.detail);
+  try { localStorage.setItem('signal-lab-mode', MODE); } catch (e) {}
+}
+function paintTileHead(id) {
+  const t = tileEls[id]; if (!t) return;
+  t.nm.textContent = L(SIMPLE[id].nick, NAMES[id].short);
+  t.nick.textContent = L(realOf(id), SIMPLE[id].nick);
+}
+function renderNow() {
+  const rows = ALGOS.map(a => ({ id: a.id, v: S.runs[a.id].bestF })).concat([{ id: 'mp', v: S.mp }]).filter(r => isFinite(r.v)).sort((a, b) => a.v - b.v);
+  if (!rows.length) return;
+  const top = rows[0], done = ALGOS.every(a => S.runs[a.id].done);
+  const used = Math.max(...ALGOS.map(a => S.runs[a.id].evals));
+  if (MODE === 'simple') {
+    const lead = `<b style="color:var(${COLORS[top.id]})">${SIMPLE[top.id].nick}</b> (${realOf(top.id)})`;
+    $('now').innerHTML = (done ? `Race over! ${lead} wins. ` : `Right now ${lead} is in the lead. `) +
+      `With its lights an average car waits <b>${top.v.toFixed(1)} s</b>, which is <b>${pct(top.v)}% less</b> than with ordinary lights (${S.base.toFixed(1)} s).` +
+      (done ? ' Tap any box to see how it got there, or change the traffic pattern and race again.' : ` ${used.toLocaleString()} of ${budget().toLocaleString()} tries used.`);
+  } else {
+    $('now').innerHTML = `${done ? 'Final' : 'Leader'}: <b>${NAMES[top.id].name}</b> at ${top.v.toFixed(2)} s/veh (−${pct(top.v)}% vs 50/50) · ${used}/${budget()} evaluations`;
+  }
+}
+
+let col = {};
+const readCols = () => { const cs = getComputedStyle(document.documentElement); for (const k of ['bg', 'panel', 'ink', 'muted', 'line', 'road', 'lane', 'accent', 'go', 'stop', 'wait', 'car', 'ga', 'aco', 'pso', 'sa', 'cma', 'mp', 'base']) col[k] = cs.getPropertyValue('--' + k).trim(); };
+readCols();
+try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readCols); } catch (e) {}
+new MutationObserver(readCols).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+// ---------- State ----------
+const S = { running: true, ctx: null, runs: {}, sims: {}, opts: {}, base: 0, mp: 0, frame: 0, detail: null, mpTrace: [] };
+for (const id of IDS) S.opts[id] = defaults(NAMES[id].params);
+for (const [k, v] of Object.entries(SCENARIOS)) { const o = document.createElement('option'); o.value = k; o.textContent = v.name; $('scen').appendChild(o); }
+const budget = () => +$('budget').value, seed = () => Math.max(1, +$('seed').value || 1);
+const algoSeed = (id) => seed() * 1000 + IDS.indexOf(id) * 17;
+
+function resetAll() {
+  S.ctx = makeContext($('scen').value, +$('demand').value);
+  $('scenNote').textContent = SCENARIOS[$('scen').value].note;
+  S.base = evaluate(baselineX(), S.ctx);
+  S.mp = evaluateMaxPressure(S.ctx, S.opts.mp);
+  for (const a of ALGOS) resetAlgo(a.id);
+  S.sims.mp = new Sim(S.ctx, { type: 'mp', opts: S.opts.mp }); S.mpTrace = [];
+  S.running = true; syncRunBtn();
+}
+function resetAlgo(id) {
+  if (id === 'mp') { S.mp = evaluateMaxPressure(S.ctx, S.opts.mp); S.sims.mp = new Sim(S.ctx, { type: 'mp', opts: S.opts.mp }); S.mpTrace = []; return; }
+  S.runs[id] = new Run(NAMES[id], S.ctx, algoSeed(id), budget(), S.opts[id]);
+  const old = S.sims[id];
+  S.sims[id] = new Sim(S.ctx, { type: 'fixed', x: baselineX() });
+  if (old) { S.sims[id].q.set(old.q); S.sims[id].pend.set(old.pend); S.sims[id].t = old.t; }
+}
+
+// ---------- Tiles ----------
+const tileEls = {};
+for (const id of IDS) {
+  const a = NAMES[id], b = document.createElement('button');
+  b.className = 'tile'; b.style.setProperty('--c', `var(${COLORS[id]})`); b.type = 'button';
+  b.setAttribute('aria-label', `Open ${a.name} in detail`);
+  b.innerHTML = `<div class="bar"></div><div class="hd"><span class="nm"></span>${(id === 'cma' || id === 'mp') ? '<span class="tag">Beyond syllabus</span>' : '<span class="open">Explore ↗</span>'}</div><div class="nick"></div><canvas></canvas><div class="prog"><span></span></div><div class="ft"><span class="score num">–</span><span class="sub"></span></div>`;
+  b.addEventListener('click', () => openDetail(id));
+  $('tiles').appendChild(b);
+  tileEls[id] = { root: b, cv: b.querySelector('canvas'), score: b.querySelector('.score'), sub: b.querySelector('.sub'), nm: b.querySelector('.nm'), nick: b.querySelector('.nick'), prog: b.querySelector('.prog span') };
+}
+
+// ---------- Canvas helpers ----------
+function fit(cv) {
+  const dpr = Math.min(2, window.devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !h) return null;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); return { g, w, h };
+}
+
+// Draw the network for one simulator
+function drawSim(cv, sim, big) {
+  const f = fit(cv); if (!f) return; const { g, w } = f;
+  g.fillStyle = col.panel; g.fillRect(0, 0, w, w);
+  const P = k => w * (0.19 + 0.31 * k), rw = w * (big ? 0.06 : 0.066), half = rw / 2;
+  // roads
+  g.fillStyle = col.road;
+  for (let k = 0; k < 3; k++) { g.fillRect(0, P(k) - half, w, rw); g.fillRect(P(k) - half, 0, rw, w); }
+  g.strokeStyle = col.lane; g.lineWidth = 1; g.setLineDash([4, 5]);
+  g.beginPath();
+  for (let k = 0; k < 3; k++) { g.moveTo(0, P(k)); g.lineTo(w, P(k)); g.moveTo(P(k), 0); g.lineTo(P(k), w); }
+  g.stroke(); g.setLineDash([]);
+  const car = Math.max(2.4, w * 0.012), gap = car * 1.45, lane = rw * 0.25;
+  for (let i = 0; i < N; i++) {
+    const r = Math.floor(i / G), c = i % G, cx = P(c), cy = P(r);
+    g.fillStyle = col.road; g.fillRect(cx - half, cy - half, rw, rw);
+    const ph = sim.phase[i];
+    for (let a = 0; a < 4; a++) {
+      const hx = HEAD[a][1], hy = HEAD[a][0], lx = hy, ly = -hx;    // heading and its left
+      const sx = cx - hx * (half + 1.5) + lx * lane, sy = cy - hy * (half + 1.5) + ly * lane;
+      const interior = !TL.UPSTREAM_OUT[i * 4 + a];
+      const len = (interior ? w * 0.31 : w * 0.19) - rw - 2;
+      const maxCars = Math.floor(len / gap);
+      const k = i * 4 + a, nq = Math.round(sim.q[k]);
+      g.fillStyle = col.wait;
+      for (let n = 0; n < Math.min(nq, maxCars); n++) g.fillRect(sx - hx * (n * gap + gap / 2) - car / 2, sy - hy * (n * gap + gap / 2) - car / 2, car, car);
+      if (nq > maxCars && !interior) {
+        g.fillStyle = col.wait; g.font = `600 ${Math.max(9, w * 0.032)}px ${getComputedStyle(document.body).getPropertyValue('--mono') || 'monospace'}`;
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText('+' + (nq - maxCars), sx - hx * (len + 4) + lx * w * 0.035, sy - hy * (len + 4) + ly * w * 0.035);
+      }
+      // moving vehicles in transit to this stop line
+      g.fillStyle = col.car; let acc = 0.5;
+      const qEnd = Math.min(nq, maxCars) * gap;
+      for (let s = 0; s < TAU; s++) {
+        acc += sim.pend[((sim.t + s) % TAU) * NQ + k];
+        while (acc >= 1) { acc -= 1; const d = Math.max(qEnd + gap / 2, ((s + 0.5) / TAU) * len); if (d < len) g.fillRect(sx - hx * d - car / 2, sy - hy * d - car / 2, car, car); }
+      }
+      // signal head at stop line
+      const green = (ph === 0 && (a === 0 || a === 2)) || (ph === 1 && (a === 1 || a === 3));
+      g.fillStyle = ph < 0 ? col.accent : green ? col.go : col.stop;
+      const sl = rw * 0.46, th = Math.max(2, w * 0.009);
+      if (hx === 0) g.fillRect(sx - sl / 2, sy - th / 2, sl, th); else g.fillRect(sx - th / 2, sy - sl / 2, th, sl);
+    }
+  }
+}
+
+// Step-line convergence chart
+function niceTicks(lo, hi, n) { const span = hi - lo, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0))); const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= step0); const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6)); return out; }
+function drawChart(cv, series, refs, xmax, compact) {
+  const f = fit(cv); if (!f) return; const { g, w, h } = f;
+  g.clearRect(0, 0, w, h);
+  const L = 40, R = compact ? 8 : 96, Tp = 10, B = 26, pw = w - L - R, ph = h - Tp - B;
+  let lo = Infinity, hi = -Infinity;
+  for (const r of refs) { lo = Math.min(lo, r.v); hi = Math.max(hi, r.v); }
+  for (const s of series) for (const p of s.hist) lo = Math.min(lo, p[1]);
+  if (!isFinite(lo)) lo = 0;
+  hi = Math.max(hi, lo + 2) * 1.08; lo = Math.max(0, lo - (hi - lo) * 0.06);
+  const X = e => L + pw * e / xmax, Yv = v => Tp + ph * (1 - (Math.min(v, hi) - lo) / (hi - lo));
+  g.font = `11px ${'IBM Plex Mono, monospace'}`; g.textBaseline = 'middle'; g.textAlign = 'right';
+  for (const t of niceTicks(lo, hi, 4)) { const y = Yv(t); g.strokeStyle = col.line; g.lineWidth = 1; g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke(); g.fillStyle = col.muted; g.fillText(t, L - 6, y); }
+  g.textAlign = 'center'; g.textBaseline = 'top';
+  for (const t of niceTicks(0, xmax, compact ? 3 : 5)) { g.fillStyle = col.muted; g.fillText(t >= 1000 ? (t / 1000) + 'k' : t, X(t), Tp + ph + 7); }
+  g.save(); g.translate(11, Tp + ph / 2); g.rotate(-Math.PI / 2); g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = col.muted; g.font = '11px IBM Plex Sans, sans-serif'; g.fillText(MODE === 'simple' ? 'avg wait (s)' : 's / vehicle', 0, 0); g.restore();
+  const labels = [];
+  for (const r of refs) { const y = Yv(r.v); g.strokeStyle = r.c; g.setLineDash([5, 4]); g.lineWidth = 1.5; g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke(); g.setLineDash([]); labels.push({ y, t: r.label, c: r.c }); }
+  g.save(); g.beginPath(); g.rect(L, Tp - 2, pw + 2, ph + 4); g.clip();
+  for (const s of series) {
+    if (!s.hist.length) continue;
+    g.strokeStyle = s.c; g.lineWidth = s.bold ? 2.6 : 1.8; g.beginPath();
+    let px = X(s.hist[0][0]), py = Yv(s.hist[0][1]); g.moveTo(px, py);
+    for (let i = 1; i < s.hist.length; i++) { const x = X(s.hist[i][0]); g.lineTo(x, py); py = Yv(s.hist[i][1]); g.lineTo(x, py); }
+    const ex = X(s.evals); g.lineTo(ex, py); g.stroke();
+    g.fillStyle = s.c; g.beginPath(); g.arc(ex, py, 3.2, 0, 7); g.fill();
+    labels.push({ y: py, t: s.label, c: s.c });
+  }
+  g.restore();
+  if (!compact) {
+    labels.sort((a, b) => a.y - b.y);
+    for (let i = 1; i < labels.length; i++) if (labels[i].y - labels[i - 1].y < 13) labels[i].y = labels[i - 1].y + 13;
+    const over = labels.length ? labels[labels.length - 1].y - (Tp + ph) : 0; if (over > 0) labels.forEach(l => l.y -= over);
+    g.textAlign = 'left'; g.textBaseline = 'middle'; g.font = '600 11px IBM Plex Sans, sans-serif';
+    for (const l of labels) { g.fillStyle = l.c; g.fillText(l.t, L + pw + 8, l.y); }
+  }
+}
+
+// ---------- Leaderboard ----------
+function fmt(v) { return isFinite(v) ? v.toFixed(2) : '–'; }
+function renderBoard() {
+  const rows = ALGOS.map(a => ({ id: a.id, v: S.runs[a.id].bestF, ev: S.runs[a.id].evals }));
+  rows.push({ id: 'mp', v: S.mp, ev: null }, { id: 'base', v: S.base, ev: null });
+  rows.sort((a, b) => a.v - b.v);
+  const worst = Math.max(...rows.map(r => isFinite(r.v) ? r.v : 0));
+  const simple = MODE === 'simple';
+  let h = `<thead><tr><th>#</th><th>${L('Method', 'Controller')}</th><th class="r">${L('Avg wait (s)', 'Delay s/veh')}</th><th></th><th class="r">${L('Less waiting', 'vs 50/50')}</th>${simple ? '' : '<th class="r">Evals</th>'}</tr></thead><tbody>`;
+  rows.forEach((r, i) => {
+    const d = (r.v - S.base) / S.base * 100;
+    const nm = r.id === 'base' ? nameOf('base') : simple ? `${SIMPLE[r.id].nick} <span class="note">· ${r.id === 'mp' ? 'Max-Pressure' : NAMES[r.id].short}</span>` : (r.id === 'mp' ? 'Max-Pressure (adaptive)' : NAMES[r.id].name);
+    const dtxt = r.id === 'base' ? '–' : !isFinite(d) ? '–' : simple ? `${Math.round(-d)}%` : (d > 0 ? '+' : '') + d.toFixed(1) + '%';
+    const ev = r.ev == null ? (r.id === 'mp' ? L('reacts live', 'live') : L('none', '1')) : r.ev;
+    h += `<tr><td class="num">${i + 1}</td><td><span class="sw" style="background:var(${COLORS[r.id]})"></span>${nm}</td><td class="r num">${simple ? (isFinite(r.v) ? r.v.toFixed(1) : '–') : fmt(r.v)}</td><td><div class="meter"><span style="width:${isFinite(r.v) ? (r.v / worst * 100).toFixed(1) : 0}%;background:var(${COLORS[r.id]})"></span></div></td><td class="r num delta ${d < -0.05 ? 'good' : d > 0.05 ? 'bad' : ''}">${dtxt}</td>${simple ? '' : `<td class="r num">${ev}</td>`}</tr>`;
+  });
+  $('board').innerHTML = h + '</tbody>';
+}
+
+// ---------- Main loop ----------
+let lastBoard = 0, lastSpace = 0;
+function frame(now) {
+  S.frame++;
+  const sp = +$('speed').value;
+  if (S.running) {
+    for (const a of ALGOS) S.runs[a.id].advance(sp);
+    if (ALGOS.every(a => S.runs[a.id].done)) { S.running = false; syncRunBtn(true); }
+  }
+  for (const a of ALGOS) { const r = S.runs[a.id]; if (r.improved && r.bestX) { S.sims[a.id].setParams(r.bestX); r.improved = false; r._fresh = true; } }
+  const steps = +$('simspeed').value;
+  for (const id of IDS) for (let k = 0; k < steps; k++) {
+    const sim = S.sims[id]; sim.step();
+    if (sim.t % T === 0) { sim.delay = 0; sim.arrived = 0; }
+    if (id === 'mp') { S.mpTrace.push(S.sims.mp.pressure(4, 0) - S.sims.mp.pressure(4, 1)); if (S.mpTrace.length > 240) S.mpTrace.shift(); }
+  }
+  const open = S.detail;
+  for (const id of IDS) {
+    if (!open) drawSim(tileEls[id].cv, S.sims[id], false);
+    const v = id === 'mp' ? S.mp : S.runs[id].bestF;
+    tileEls[id].score.innerHTML = MODE === 'simple' ? `${isFinite(v) ? v.toFixed(1) : '–'} s <small>wait</small>` : `${fmt(v)} <small>s/veh</small>`;
+    tileEls[id].sub.textContent = MODE === 'simple' ? (isFinite(v) ? `${pct(v)}% less` : '') : (id === 'mp' ? 'adapts every second' : `${S.runs[id].evals} / ${budget()} evals`);
+    tileEls[id].prog.style.width = id === 'mp' ? '100%' : (S.runs[id].evals / budget() * 100).toFixed(1) + '%';
+  }
+  if (!open) drawChart($('chart'), ALGOS.map(a => ({ c: col[a.id], hist: S.runs[a.id].hist, evals: S.runs[a.id].evals, label: L(SIMPLE[a.id].nick, a.short), bold: a.id === 'cma' })), [{ v: S.base, label: L('Ordinary', '50/50'), c: col.base }, { v: S.mp, label: L('Traffic cop', 'Max-Pressure'), c: col.mp }], budget(), false);
+  if (now - lastBoard > 250) { lastBoard = now; renderBoard(); renderNow(); $('raceStatus').textContent = S.running ? 'Running' : (ALGOS.every(a => S.runs[a.id].done) ? 'Finished' : 'Paused'); }
+  if (open) renderDetail(now);
+  requestAnimationFrame(frame);
+}
+function syncRunBtn(finished) {
+  const allDone = ALGOS.every(a => S.runs[a.id] && S.runs[a.id].done);
+  $('runBtn').textContent = S.running ? 'Pause' : (allDone ? 'Finished' : 'Run');
+  $('runBtn').disabled = !S.running && allDone;
+  $('lamp').classList.toggle('go', S.running);
+}
+$('runBtn').addEventListener('click', () => { S.running = !S.running; syncRunBtn(); });
+$('resetBtn').addEventListener('click', () => { resetAll(); });
+for (const id of ['scen', 'budget', 'seed']) $(id).addEventListener('change', resetAll);
+$('demand').addEventListener('input', () => { $('demandV').textContent = Math.round($('demand').value * 100) + '%'; });
+$('demand').addEventListener('change', resetAll);
+$('speed').addEventListener('input', () => $('speedV').textContent = $('speed').value + '/frame');
+$('simspeed').addEventListener('input', () => $('simspeedV').textContent = $('simspeed').value + '×');
+
+// ---------- Detail desk ----------
+let land = null;
+function openDetail(id) {
+  S.detail = id; land = null;
+  const a = NAMES[id], info = INFO[id];
+  $('desk').style.setProperty('--c', `var(${COLORS[id]})`);
+  const sm = SIMPLE[id], beyond = id === 'cma' || id === 'mp';
+  $('dTitle').textContent = L(`${sm.nick} · ${realOf(id)}`, a.name);
+  $('dKind').textContent = L(beyond ? 'Beyond our syllabus' : 'In our syllabus', info.kind);
+  $('dPlain').innerHTML = `<span class="idea">${sm.idea}</span><p>${sm.how}</p>`;
+  $('dHow').textContent = L(sm.how, info.how);
+  $('dSteps').innerHTML = L(sm.steps, info.steps).map(s => `<li>${s}</li>`).join('');
+  $('dSpaceNote').textContent = L(sm.space, info.space);
+  $('dSpaceLbl').textContent = id === 'mp' ? L('Which direction is busier at the middle crossroad', 'Pressure at the centre junction') : L('Where it is searching · middle crossroad’s two dials', 'Search space · centre junction split × offset');
+  $('dPlanLbl').textContent = id === 'mp' ? L('What each light is doing now', 'Current phase per junction') : L('Its best light timings for all 9 crossroads', 'Best timing plan · NS green · EW green · offset');
+  $('dHow').closest('.pane').hidden = MODE === 'simple';
+  buildParams(id);
+  $('overlay').hidden = false; document.body.style.overflow = 'hidden'; $('dClose').focus();
+}
+function closeDetail() { S.detail = null; $('overlay').hidden = true; document.body.style.overflow = ''; }
+$('dClose').addEventListener('click', closeDetail);
+$('overlay').addEventListener('click', e => { if (e.target === $('overlay')) closeDetail(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.detail) closeDetail(); if (S.detail && (e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !(e.target instanceof HTMLInputElement)) step(e.key === 'ArrowRight' ? 1 : -1); });
+const step = d => openDetail(IDS[(IDS.indexOf(S.detail) + d + IDS.length) % IDS.length]);
+$('dPrev').addEventListener('click', () => step(-1)); $('dNext').addEventListener('click', () => step(1));
+
+function buildParams(id) {
+  const ps = NAMES[id].params, o = S.opts[id];
+  $('dParams').innerHTML = ps.map(p => `<div class="param"><label for="p_${p.key}">${MODE === 'simple' && SP_LABEL[p.key] ? SP_LABEL[p.key][0] : p.label}</label><output id="o_${p.key}">${o[p.key]}</output><input type="range" id="p_${p.key}" min="${p.min}" max="${p.max}" step="${p.step}" value="${o[p.key]}"><small>${MODE === 'simple' && SP_LABEL[p.key] ? SP_LABEL[p.key][1] : p.hint}</small></div>`).join('');
+  for (const p of ps) $('p_' + p.key).addEventListener('input', e => { $('o_' + p.key).textContent = e.target.value; });
+}
+$('dApply').addEventListener('click', () => {
+  const id = S.detail, o = {};
+  for (const p of NAMES[id].params) o[p.key] = +$('p_' + p.key).value;
+  S.opts[id] = o; resetAlgo(id); land = null;
+  if (id !== 'mp' && !S.running) { S.running = true; syncRunBtn(); }
+  $('dApplyNote').textContent = 'Restarted with your parameters.';
+});
+$('dDefaults').addEventListener('click', () => { S.opts[S.detail] = defaults(NAMES[S.detail].params); buildParams(S.detail); resetAlgo(S.detail); land = null; $('dApplyNote').textContent = 'Back to the default parameters.'; });
+
+// Fitness landscape slice through the best plan, varying only the centre junction
+function computeLandscape(bx) {
+  const R = 22, out = new Float64Array(R * R), x = bx.slice();
+  let lo = Infinity, hi = -Infinity;
+  for (let i = 0; i < R; i++) for (let j = 0; j < R; j++) { x[8] = (i + 0.5) / R; x[9] = (j + 0.5) / R; const v = evaluate(x, S.ctx); out[j * R + i] = v; lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  return { R, out, lo, hi, key: bx.join() };
+}
+function mix(c1, c2, t) { const p = s => { const x = parseInt(s.slice(1), 16); return [x >> 16 & 255, x >> 8 & 255, x & 255]; }; const a = p(c1), b = p(c2); return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',')})`; }
+
+function renderDetail(now) {
+  const id = S.detail, sim = S.sims[id];
+  drawSim($('dSim'), sim, true);
+  const tt = sim.t % T; $('dClock').textContent = `t = ${String(Math.floor(tt / 60)).padStart(2, '0')}:${String(tt % 60).padStart(2, '0')} / 15:00`;
+  const queued = sim.q.reduce((s, v) => s + v, 0), live = sim.arrived ? sim.delay / sim.arrived : 0;
+  let stats;
+  if (id === 'mp') stats = [[L('Average wait', 'Score'), fmt(S.mp) + ' s'], [L('Less waiting', 'vs 50/50'), L(pct(S.mp) + '%', ((S.mp - S.base) / S.base * 100).toFixed(1) + '%')], [L('Cars waiting now', 'Queued now'), queued.toFixed(0) + L(' cars', ' veh')], [L('Wait in this replay', 'Live delay'), live.toFixed(1) + ' s']];
+  else {
+    const r = S.runs[id], st = r.state;
+    const extra = id === 'ga' ? [L('Generation', 'Generation'), st.gen ?? 0] : id === 'aco' ? [L('Round', 'Iteration'), st.iter ?? 0] : id === 'sa' ? [L('Boldness', 'Temperature'), (st.temp ?? 0).toFixed(3)] : id === 'cma' ? [L('Search width', 'Step σ'), (st.sigma ?? 0).toFixed(4)] : [L('Birds', 'Particles'), (st.X || []).length];
+    stats = [[L('Best average wait', 'Best delay'), fmt(r.bestF) + ' s'], [L('Less waiting', 'vs 50/50'), isFinite(r.bestF) ? L(pct(r.bestF) + '%', ((r.bestF - S.base) / S.base * 100).toFixed(1) + '%') : '–'], [L('Tries used', 'Evaluations'), `${r.evals}/${r.budget}`], extra];
+  }
+  $('dStats').innerHTML = stats.map(s => `<div class="stat"><div class="label">${s[0]}</div><div class="v">${s[1]}</div></div>`).join('');
+
+  if (id === 'mp') { drawPressure($('dSpace')); }
+  else {
+    const r = S.runs[id];
+    if (r.bestX && (!land || (land.key !== r.bestX.join() && now - lastSpace > 2500))) { land = computeLandscape(r.bestX); lastSpace = now; }
+    drawSpace($('dSpace'), id, r);
+  }
+  if (S.frame % 6 === 0) {
+    if (id === 'mp') drawChart($('dConv'), [], [{ v: S.base, label: '50/50', c: col.base }, { v: S.mp, label: 'MP', c: col.mp }], budget(), true);
+    else { const r = S.runs[id]; drawChart($('dConv'), [{ c: col[id], hist: r.hist, evals: r.evals, label: '', bold: true }], [{ v: S.base, label: '', c: col.base }, { v: S.mp, label: '', c: col.mp }], r.budget, true); }
+    renderPlan(id);
+  }
+}
+function renderPlan(id) {
+  let html = '';
+  if (id === 'mp') {
+    const sim = S.sims.mp;
+    for (let i = 0; i < N; i++) { const ph = sim.phase[i]; html += `<div><b>${L('Crossroad ', 'J')}${i + 1}</b>${ph < 0 ? L('changing', 'amber / all-red') : ph === 0 ? L('north–south green', 'NS green') : L('east–west green', 'EW green')}<br>${L('for', '')} ${sim.el[i]} s${L('', ' in phase')}</div>`; }
+  } else {
+    const x = S.runs[id].bestX || baselineX();
+    for (let i = 0; i < N; i++) { const g = splitSec(x[2 * i]); html += MODE === 'simple' ? `<div><b>Crossroad ${i + 1}</b>N–S green ${Math.round(g - Y)} s<br>E–W green ${Math.round(C - g - Y)} s<br>starts at +${Math.round(x[2 * i + 1] * C)} s</div>` : `<div><b>J${i + 1}</b>NS ${Math.round(g - Y)}s · EW ${Math.round(C - g - Y)}s<br>offset +${Math.round(x[2 * i + 1] * C)}s</div>`; }
+  }
+  $('dPlan').innerHTML = html;
+}
+function drawSpace(cv, id, r) {
+  const f = fit(cv); if (!f) return; const { g, w } = f;
+  const m = 30, pw = w - m - 8, X = v => m + pw * v, Yp = v => 8 + pw * (1 - v);
+  g.fillStyle = col.panel; g.fillRect(0, 0, w, w);
+  if (land) {
+    const R = land.R, cs = pw / R;
+    for (let i = 0; i < R; i++) for (let j = 0; j < R; j++) {
+      const t = (land.out[j * R + i] - land.lo) / (land.hi - land.lo + 1e-9);
+      g.fillStyle = mix(col.panel.length === 7 ? col.panel : '#ffffff', col.muted.length === 7 ? col.muted : '#888888', 0.04 + 0.6 * Math.sqrt(t));
+      g.fillRect(X(i / R), Yp((j + 1) / R), cs + 0.5, cs + 0.5);
+    }
+  }
+  g.strokeStyle = col.line; g.strokeRect(m, 8, pw, pw);
+  g.fillStyle = col.muted; g.font = '10.5px IBM Plex Sans, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'top';
+  g.fillText(L('north–south green: short → long', 'NS green 9 s → 45 s'), m + pw / 2, 8 + pw + 6);
+  g.save(); g.translate(10, 8 + pw / 2); g.rotate(-Math.PI / 2); g.textBaseline = 'middle'; g.fillText(L('cycle starts at: 0 → 60 s', 'offset 0 → 60 s'), 0, 0); g.restore();
+  const c = col[id], tr = r.trail;
+  // recent evaluations
+  let lo = Infinity, hi = -Infinity; for (let k = 2; k < tr.length; k += 3) { lo = Math.min(lo, tr[k]); hi = Math.max(hi, tr[k]); }
+  g.globalAlpha = 0.35; g.fillStyle = c;
+  for (let k = 0; k < tr.length; k += 3) g.fillRect(X(tr[k]) - 1, Yp(tr[k + 1]) - 1, 2, 2);
+  g.globalAlpha = 1;
+  const st = r.state;
+  if (id === 'ga' && st.pop) {
+    const fs = st.fit, flo = Math.min(...fs), fhi = Math.max(...fs);
+    st.pop.forEach((p, i) => { const t = 1 - (fs[i] - flo) / (fhi - flo + 1e-9); g.globalAlpha = 0.35 + 0.65 * t; g.fillStyle = c; g.beginPath(); g.arc(X(p[8]), Yp(p[9]), 2.5 + 2.5 * t, 0, 7); g.fill(); });
+    g.globalAlpha = 1;
+  } else if (id === 'pso' && st.X) {
+    g.strokeStyle = c; g.fillStyle = c; g.lineWidth = 1.2;
+    st.X.forEach((p, i) => { const v = st.V[i]; g.beginPath(); g.moveTo(X(p[8]), Yp(p[9])); g.lineTo(X(p[8] - v[8] * 2.5), Yp(p[9] - v[9] * 2.5)); g.stroke(); g.beginPath(); g.arc(X(p[8]), Yp(p[9]), 3, 0, 7); g.fill(); });
+    if (st.g) { g.lineWidth = 2; g.beginPath(); g.arc(X(st.g[8]), Yp(st.g[9]), 8, 0, 7); g.stroke(); }
+  } else if (id === 'aco' && st.tau) {
+    const L = st.L, bw = pw / L;
+    const mx = Math.max(...st.tau[8], ...st.tau[9]);
+    g.fillStyle = c; g.globalAlpha = 0.75;
+    for (let l = 0; l < L; l++) {
+      const h8 = st.tau[8][l] / mx * pw * 0.22; g.fillRect(X(l / L) + 1, 8 + pw - h8, bw - 2, h8);
+      const h9 = st.tau[9][l] / mx * pw * 0.22; g.fillRect(m, Yp((l + 1) / L) + 1, h9, bw - 2);
+    }
+    g.globalAlpha = 1;
+  } else if (id === 'sa' && st.x) {
+    g.strokeStyle = c; g.lineWidth = 1.4; g.beginPath();
+    const n = tr.length / 3, from = Math.max(0, n - 60);
+    for (let k = from; k < n; k++) { const px = X(tr[k * 3]), py = Yp(tr[k * 3 + 1]); k === from ? g.moveTo(px, py) : g.lineTo(px, py); }
+    g.stroke(); g.fillStyle = c; g.beginPath(); g.arc(X(st.x[8]), Yp(st.x[9]), 5, 0, 7); g.fill();
+    g.fillStyle = col.ink; g.textAlign = 'left'; g.textBaseline = 'top'; g.font = '11px IBM Plex Mono, monospace'; g.fillText(L('boldness ', 'T = ') + st.temp.toFixed(3), m + 6, 14);
+  } else if (id === 'cma' && st.C) {
+    const a = st.C[8][8], b = st.C[8][9], d = st.C[9][9], s2 = st.sigma;
+    const tr2 = (a + d) / 2, det = Math.sqrt(Math.max(0, ((a - d) / 2) ** 2 + b * b));
+    const l1 = tr2 + det, l2 = Math.max(1e-12, tr2 - det), ang = 0.5 * Math.atan2(2 * b, a - d);
+    g.save(); g.translate(X(st.m[8]), Yp(((st.m[9] % 1) + 1) % 1)); g.rotate(-ang);
+    g.strokeStyle = c; g.lineWidth = 2; g.fillStyle = c; g.globalAlpha = 0.18;
+    g.beginPath(); g.ellipse(0, 0, Math.max(2, 2 * s2 * Math.sqrt(l1) * pw), Math.max(2, 2 * s2 * Math.sqrt(l2) * pw), 0, 0, 7); g.fill();
+    g.globalAlpha = 1; g.stroke(); g.restore();
+    g.fillStyle = c; g.beginPath(); g.arc(X(st.m[8]), Yp(((st.m[9] % 1) + 1) % 1), 3, 0, 7); g.fill();
+  }
+  if (r.bestX) { // best marker
+    const bx = X(r.bestX[8]), by = Yp(r.bestX[9]);
+    g.strokeStyle = col.ink; g.lineWidth = 1.5; g.beginPath(); g.moveTo(bx - 6, by); g.lineTo(bx + 6, by); g.moveTo(bx, by - 6); g.lineTo(bx, by + 6); g.stroke();
+  }
+  g.fillStyle = col.muted; g.textAlign = 'right'; g.textBaseline = 'top'; g.font = '10.5px IBM Plex Sans, sans-serif';
+  g.fillText(L('darker = more waiting · + = best so far', 'shading: delay if only J5 changes (darker = worse) · + best'), w - 10, 12);
+}
+function drawPressure(cv) {
+  const f = fit(cv); if (!f) return; const { g, w, h } = f;
+  g.fillStyle = col.panel; g.fillRect(0, 0, w, h);
+  const tr = S.mpTrace, mid = h / 2; const mx = Math.max(4, ...tr.map(Math.abs));
+  g.strokeStyle = col.line; g.beginPath(); g.moveTo(0, mid); g.lineTo(w, mid); g.stroke();
+  const th = S.opts.mp.threshold / mx * (h * 0.42);
+  g.setLineDash([4, 4]); g.beginPath(); g.moveTo(0, mid - th); g.lineTo(w, mid - th); g.moveTo(0, mid + th); g.lineTo(w, mid + th); g.stroke(); g.setLineDash([]);
+  g.strokeStyle = col.mp; g.lineWidth = 2; g.beginPath();
+  tr.forEach((v, i) => { const x = i / 239 * w, y = mid - v / mx * h * 0.42; i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke();
+  g.fillStyle = col.muted; g.font = '11px IBM Plex Sans, sans-serif'; g.textAlign = 'left'; g.textBaseline = 'top';
+  g.fillText(L('North–south busier ↑', 'North–south pressure higher ↑'), 8, 8); g.textBaseline = 'bottom'; g.fillText(L('East–west busier ↓', 'East–west pressure higher ↓'), 8, h - 8);
+  g.textAlign = 'right'; g.fillText('last 4 minutes →', w - 8, h - 8);
+}
+
+// ---------- Benchmark ----------
+function renderBench(res, label) {
+  lastBench = [res, label];
+  $('benchLbl').textContent = label;
+  const rows = Object.entries(res.algos).sort((a, b) => a[1].mean - b[1].mean);
+  const idOf = k => ALGOS.find(a => a.short === k).id;
+  const nm = id => MODE === 'simple' ? `${SIMPLE[id].nick} <span class="note">· ${NAMES[id].short}</span>` : NAMES[id].short;
+  let h = `<thead><tr><th>${L('Method', 'Algorithm')}</th><th class="r">${L('Avg wait', 'Mean')}</th><th class="r">${L('± wobble', '± SD')}</th><th class="r">${L('Best run', 'Best')}</th><th class="r">${L('Worst run', 'Worst')}</th><th class="r" title="Median evaluations to get within 5% of its final result">${L('Tries needed', 'Evals to 95%')}</th></tr></thead><tbody>`;
+  for (const [k, v] of rows) h += `<tr><td><span class="sw" style="background:var(${COLORS[idOf(k)]})"></span>${nm(idOf(k))}</td><td class="r num">${v.mean.toFixed(2)}</td><td class="r num">${v.sd.toFixed(2)}</td><td class="r num">${v.best.toFixed(2)}</td><td class="r num">${v.worst.toFixed(2)}</td><td class="r num">${v.reach}</td></tr>`;
+  h += `<tr><td><span class="sw" style="background:var(--mp)"></span>${MODE === 'simple' ? `Traffic cop <span class="note">· MP</span>` : 'Max-Pressure'}</td><td class="r num">${res.mp.toFixed(2)}</td><td class="r num">0</td><td colspan="3" class="note">${L('same every time, no searching', 'deterministic, no search')}</td></tr>`;
+  h += `<tr><td><span class="sw" style="background:var(--base)"></span>${L('Ordinary lights', 'Fixed 50/50')}</td><td class="r num">${res.base.toFixed(2)}</td><td class="r num">0</td><td colspan="3" class="note">${L('never tuned, the starting point', 'untuned reference')}</td></tr>`;
+  $('benchTable').innerHTML = h + '</tbody>';
+}
+if (window.BENCH && BENCH.arterial) renderBench(BENCH.arterial, 'Precomputed · Arterial rush hour · default parameters · 10 seeds');
+let benchBusy = false;
+$('benchBtn').addEventListener('click', () => {
+  if (benchBusy) return; benchBusy = true; $('benchBtn').disabled = true;
+  const runs = +$('benchRuns').value, B = budget(), scen = $('scen').value, dem = +$('demand').value;
+  const ctx = makeContext(scen, dem), base = evaluate(baselineX(), ctx), mp = evaluateMaxPressure(ctx, S.opts.mp);
+  const jobs = []; for (const a of ALGOS) for (let s = 0; s < runs; s++) jobs.push([a, s]);
+  const res = {}; let j = 0, cur = null, t0 = performance.now();
+  const tick = () => {
+    const end = performance.now() + 30;
+    while (performance.now() < end && j < jobs.length) {
+      const [a, s] = jobs[j];
+      if (!cur) cur = new Run(a, ctx, 9001 + s * 131, B, S.opts[a.id]);
+      cur.advance(150);
+      if (cur.done) { (res[a.short] = res[a.short] || []).push(cur); cur = null; j++; }
+    }
+    $('benchProg').style.width = (j / jobs.length * 100).toFixed(1) + '%';
+    $('benchStatus').textContent = j < jobs.length ? `Running ${jobs[j][0].short}, seed ${jobs[j][1] + 1} of ${runs}…` : '';
+    if (j < jobs.length) return setTimeout(tick, 0);
+    const out = { base, mp, algos: {} };
+    for (const [k, rs] of Object.entries(res)) {
+      const fs = rs.map(r => r.bestF), mean = fs.reduce((x, y) => x + y) / fs.length, sd = Math.sqrt(fs.reduce((x, y) => x + (y - mean) ** 2, 0) / Math.max(1, fs.length - 1));
+      const reach = rs.map(r => { const tg = r.bestF + 0.05 * (r.hist[0][1] - r.bestF); return (r.hist.find(h => h[1] <= tg) || [B])[0]; }).sort((x, y) => x - y);
+      out.algos[k] = { mean, sd, best: Math.min(...fs), worst: Math.max(...fs), reach: reach[Math.floor(reach.length / 2)] };
+    }
+    renderBench(out, `Your run · ${SCENARIOS[scen].name} · ${Math.round(dem * 100)}% demand · ${runs} seeds · ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+    $('benchStatus').textContent = 'Done.'; benchBusy = false; $('benchBtn').disabled = false;
+  };
+  tick();
+});
+
+$('mSimple').addEventListener('click', () => { MODE = 'simple'; applyMode(); });
+$('mTech').addEventListener('click', () => { MODE = 'tech'; applyMode(); });
+resetAll();
+applyMode();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
