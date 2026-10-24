@@ -6,7 +6,7 @@ Six "brains" compete to set the traffic lights of a small city so that cars wait
 
 ## Run it
 
-- **Online:** open the GitHub Pages link in the repo's About box (if Pages is turned on).
+- **Online:** https://shlokshah25.github.io/signallab/
 - **Offline:** download the repo (Code → Download ZIP), unzip it, and double-click `index.html`. The three files (`index.html`, `core.js`, `bench.js`) must stay in the same folder.
 
 The page opens in **Simple** mode with everyday explanations. The **Explain it** toggle at the top right switches to **Technical**.
