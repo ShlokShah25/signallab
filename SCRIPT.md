@@ -4,21 +4,21 @@ Shlok Shah (R059) · Kevin Pratap (R064) · Sudiksha Singh (R066)
 
 ## Running order
 
-The talk runs about 17 minutes in three parts, plus questions. Lines in square brackets are actions, not words to say.
+The talk runs about 17 minutes in three parts, plus questions. Lines in square brackets are actions, not words to say. Sudiksha has the most descriptive part, Kevin the four syllabus algorithms, and Shlok the most technical part plus the Q&A.
 
 | Part | Presenter | Slides | Covers | Time |
 | --- | --- | --- | --- | --- |
-| 1 | Shlok Shah (R059) | 1–7 | Intro, what we did, problem, model, encoding, live demo, GA | ~7 min |
-| 2 | Kevin Pratap (R064) | 8–10 | ACO, PSO, SA | ~4 min |
-| 3 | Sudiksha Singh (R066) | 11–18 | CMA-ES, Max-Pressure, results, conclusions, Q&A | ~6 min |
+| 1 | Sudiksha Singh (R066) | 1–5 | Intro, what we did, the problem, the city, encoding | ~5.5 min |
+| 2 | Kevin Pratap (R064) | 6–11 | Live demo, GA, ACO, PSO, SA, beyond-syllabus intro | ~6 min |
+| 3 | Shlok Shah (R059) | 12–18 | CMA-ES, Max-Pressure, results, conclusions, Q&A | ~6.5 min |
 
 Keep the Signal Lab app open in a second tab for the demo on slide 6. It opens in Simple mode (everyday nicknames and analogies); the Explain it toggle at the top right switches to Technical if an examiner asks for the maths. The same script is in each slide's speaker notes.
 
-## Part 1 · Shlok Shah (R059) · slides 1–7
+## Part 1 · Sudiksha Singh (R066) · slides 1–5
 
 **Slide 1 · Signal Lab (cover)**
 
-Good morning everyone. We are Shlok, Kevin and Sudiksha, and our project is called Signal Lab. The question we asked is simple: if you hand the traffic lights of a small city to an optimisation algorithm, which algorithm gives drivers the shortest wait? We compared the four algorithms from our syllabus: the Genetic Algorithm, Ant Colony Optimisation, Particle Swarm Optimisation and Simulated Annealing. Then we went beyond the classroom with two more: CMA-ES, a research-grade evolution strategy, and Max-Pressure, an adaptive controller that doesn't need optimisation at all. Everything you will see today runs live in the browser.
+Good morning everyone. We are Sudiksha, Kevin and Shlok, and our project is called Signal Lab. The question we asked is simple: if you hand the traffic lights of a small city to an optimisation algorithm, which algorithm gives drivers the shortest wait? We compared the four algorithms from our syllabus: the Genetic Algorithm, Ant Colony Optimisation, Particle Swarm Optimisation and Simulated Annealing. Then we went beyond the classroom with two more: CMA-ES, a research-grade evolution strategy, and Max-Pressure, an adaptive controller that doesn't need optimisation at all. Everything you will see today runs live in the browser.
 
 **Slide 2 · What we did**
 
@@ -36,21 +36,21 @@ Here is the city we built: a three-by-three grid, so nine signalised junctions a
 
 **Slide 5 · Every algorithm sees the same 18 numbers**
 
-To make the comparison fair, every algorithm searches exactly the same space. A solution is a vector of eighteen numbers between zero and one. For each junction there is a split, which sets how much of the cycle goes to north–south green, and an offset, which shifts when the cycle starts. Offsets wrap around, so 0.99 and 0.01 are neighbours. The fitness is average delay per vehicle: we add up every second each vehicle spends queuing and divide by the number of vehicles that entered. Anything still stuck at the end is penalised. One evaluation is a full fifteen-minute simulation, and every algorithm gets the same budget of three thousand evaluations, so we compare intelligence, not effort.
+To make the comparison fair, every algorithm searches exactly the same space. A solution is a vector of eighteen numbers between zero and one. For each junction there is a split, which sets how much of the cycle goes to north–south green, and an offset, which shifts when the cycle starts. Offsets wrap around, so 0.99 and 0.01 are neighbours. The fitness is average delay per vehicle: we add up every second each vehicle spends queuing and divide by the number of vehicles that entered. Anything still stuck at the end is penalised. One evaluation is a full fifteen-minute simulation, and every algorithm gets the same budget of three thousand evaluations, so we compare intelligence, not effort. Now Kevin will show you the tool live.
+
+## Part 2 · Kevin Pratap (R064) · slides 6–11
 
 **Slide 6 · Live demo**
 
-Let me show you the tool. [Switch to the Signal Lab app.] The page opens in Simple mode, so every method has an everyday nickname: Evolution, Ant colony, Bird flock, Cooling metal, Smart learner and Traffic cop. The top strip explains the city, the puzzle and the contestants, and the amber line tells you who is winning right now. Each of these six tiles is a live simulation of the grid. Red squares are queued cars, dark squares are moving cars, and the bars at each stop line are the signals. As the search runs, each tile switches to the best plan its algorithm has found so far, so you can literally watch the queues shrink. On the right is the convergence race: delay against the number of simulations spent. The dashed lines are the untuned 50/50 plan and Max-Pressure. [Click the Smart learner tile.] Expanding a tile opens its detail view, which starts with the idea in plain words, then shows the search space for the centre junction, the full timing plan and the algorithm's parameters, which we can change and rerun. [Close the view and return to the slides.] Now let's look at how each algorithm works, starting with the one most of you know best.
+Thanks, Sudiksha. Let me show you the tool. [Switch to the Signal Lab app.] The page opens in Simple mode, so every method has an everyday nickname: Evolution, Ant colony, Bird flock, Cooling metal, Smart learner and Traffic cop. The top strip explains the city, the puzzle and the contestants, and the amber line tells you who is winning right now. Each of these six tiles is a live simulation of the grid. Red squares are queued cars, dark squares are moving cars, and the bars at each stop line are the signals. As the search runs, each tile switches to the best plan its algorithm has found so far, so you can literally watch the queues shrink. On the right is the convergence race: delay against the number of simulations spent. The dashed lines are the untuned 50/50 plan and Max-Pressure. [Click the Smart learner tile.] Expanding a tile opens its detail view, which starts with the idea in plain words, then shows the search space for the centre junction, the full timing plan and the algorithm's parameters, which we can change and rerun. [Close the view and return to the slides.] Now let's look at how each algorithm works, starting with the one most of you know best.
 
 **Slide 7 · Genetic Algorithm**
 
-In our Genetic Algorithm, each chromosome is one complete timing plan with eighteen genes, and we keep thirty plans. Each generation we simulate all of them, copy the two best straight through as elites, and fill the rest with children. Parents are chosen by tournament: draw three plans at random and take the best. Because our genes are real numbers, we use BLX-alpha crossover, which picks each child gene from a range slightly wider than its two parents, followed by a small Gaussian mutation; offsets wrap around the cycle. In traffic terms, if one plan has a good green wave on the west side and another has one on the east, crossover can combine them. Across ten seeds, GA reached 28.33 seconds of average delay with a very small spread, and got 95 percent of its improvement in about 300 evaluations. Fast and reliable. Now Kevin will take you through the swarm algorithms.
-
-## Part 2 · Kevin Pratap (R064) · slides 8–10
+In our Genetic Algorithm, each chromosome is one complete timing plan with eighteen genes, and we keep thirty plans. Each generation we simulate all of them, copy the two best straight through as elites, and fill the rest with children. Parents are chosen by tournament: draw three plans at random and take the best. Because our genes are real numbers, we use BLX-alpha crossover, which picks each child gene from a range slightly wider than its two parents, followed by a small Gaussian mutation; offsets wrap around the cycle. In traffic terms, if one plan has a good green wave on the west side and another has one on the east, crossover can combine them. Across ten seeds, GA reached 28.33 seconds of average delay with a very small spread, and got 95 percent of its improvement in about 300 evaluations. Fast and reliable. Next, the swarm algorithms.
 
 **Slide 8 · Ant Colony Optimisation (MAX-MIN)**
 
-Thanks, Shlok. Ant Colony Optimisation was designed for path problems like the travelling salesman, so we had to turn signal timing into a path. We cut every split and every offset into twelve levels. An ant walks through eighteen decision points and picks one level at each, with probability proportional to the pheromone on that level. After each batch of fifteen ants, all pheromone evaporates by eight percent, and the levels used by this round's best ant and the best ant ever get reinforced. We used the MAX-MIN variant, which clamps pheromone between bounds so the colony can't commit too early. ACO was the weakest here, at 29.6 seconds. The reason is the representation: twelve levels means offsets in five-second steps, which is too coarse to fine-tune a green wave. ACO is excellent on discrete, path-like problems, but continuous timing is not its home ground.
+Ant Colony Optimisation was designed for path problems like the travelling salesman, so we had to turn signal timing into a path. We cut every split and every offset into twelve levels. An ant walks through eighteen decision points and picks one level at each, with probability proportional to the pheromone on that level. After each batch of fifteen ants, all pheromone evaporates by eight percent, and the levels used by this round's best ant and the best ant ever get reinforced. We used the MAX-MIN variant, which clamps pheromone between bounds so the colony can't commit too early. ACO was the weakest here, at 29.6 seconds. The reason is the representation: twelve levels means offsets in five-second steps, which is too coarse to fine-tune a green wave. ACO is excellent on discrete, path-like problems, but continuous timing is not its home ground.
 
 **Slide 9 · Particle Swarm Optimisation**
 
@@ -58,17 +58,17 @@ Particle Swarm treats each plan as a particle with a position and a velocity in 
 
 **Slide 10 · Simulated Annealing**
 
-Simulated Annealing is the odd one out: no population, just one plan. Each move changes one to three genes slightly. If the new plan is better, we keep it. If it's worse, we may still keep it, with probability e to the minus delta over T. At high temperature the search wanders and escapes local minima; as the temperature cools from 3 to 0.01 over the budget, it becomes a careful local search. The result surprised us: SA had the best average and the tightest spread of all, at 28.21 seconds. But look at the cost: it needed over 1300 evaluations to get most of its gain, four times longer than PSO. SA trades speed for thoroughness, and with a budget of only 500 evaluations it would come last. Sudiksha will come back to that trade-off in the results. Over to her for the part that goes beyond the syllabus.
-
-## Part 3 · Sudiksha Singh (R066) · slides 11–18
+Simulated Annealing is the odd one out: no population, just one plan. Each move changes one to three genes slightly. If the new plan is better, we keep it. If it's worse, we may still keep it, with probability e to the minus delta over T. At high temperature the search wanders and escapes local minima; as the temperature cools from 3 to 0.01 over the budget, it becomes a careful local search. The result surprised us: SA had the best average and the tightest spread of all, at 28.21 seconds. But look at the cost: it needed over 1300 evaluations to get most of its gain, four times longer than PSO. SA trades speed for thoroughness, and with a budget of only 500 evaluations it would come last. Shlok will come back to that trade-off in the results.
 
 **Slide 11 · Beyond the syllabus**
 
-Thank you, Kevin. Everything so far comes from our syllabus. We wanted to see how these classroom methods compare with what researchers and traffic engineers actually use, so we added two methods we had to learn on our own. The first is CMA-ES, an evolution strategy that is a standard baseline in black-box optimisation research. The second is not an optimiser at all. Max-Pressure is an adaptive controller that decides every second, from the live queues, which direction gets green. It asks a different question: do we even need to optimise a fixed plan?
+Everything so far comes from our syllabus. We wanted to see how these classroom methods compare with what researchers and traffic engineers actually use, so we added two methods we had to learn on our own. The first is CMA-ES, an evolution strategy that is a standard baseline in black-box optimisation research. The second is not an optimiser at all. Max-Pressure is an adaptive controller that decides every second, from the live queues, which direction gets green. It asks a different question: do we even need to optimise a fixed plan? Shlok will take you through both, and then our results.
+
+## Part 3 · Shlok Shah (R059) · slides 12–18
 
 **Slide 12 · CMA-ES**
 
-CMA-ES keeps a multivariate Gaussian over the search space. Each generation it samples twelve plans, ranks them, and moves the mean towards the best six. The clever part is that it also reshapes the Gaussian by updating its covariance matrix. If good plans tend to have the offsets of junctions 4 and 5 moving together, which is exactly what a green wave is, the covariance learns that correlation and future samples follow it. It also tunes its own step size, so there are only two settings to choose. In our app's detail view you can see this as a rotating ellipse. CMA-ES produced the best single run on the arterial, 28.03 seconds, and the best average of all on the balanced grid. Its arterial mean was pulled up by one seed that converged too early, at 31.6. The standard fix in research is restarts with a growing population, called IPOP-CMA-ES, which is our first item of future work.
+Thanks, Kevin. CMA-ES keeps a multivariate Gaussian over the search space. Each generation it samples twelve plans, ranks them, and moves the mean towards the best six. The clever part is that it also reshapes the Gaussian by updating its covariance matrix. If good plans tend to have the offsets of junctions 4 and 5 moving together, which is exactly what a green wave is, the covariance learns that correlation and future samples follow it. It also tunes its own step size, so there are only two settings to choose. In our app's detail view you can see this as a rotating ellipse. CMA-ES produced the best single run on the arterial, 28.03 seconds, and the best average of all on the balanced grid. Its arterial mean was pulled up by one seed that converged too early, at 31.6. The standard fix in research is restarts with a growing population, called IPOP-CMA-ES, which is our first item of future work.
 
 **Slide 13 · Max-Pressure**
 
@@ -92,16 +92,16 @@ To wrap up, four lessons. One: tuning matters more than which algorithm you pick
 
 **Slide 18 · Questions?**
 
-Thank you for listening. We're happy to take questions. If you'd like, we can rerun any algorithm live with different parameters, or switch the traffic scenario and watch the ranking change.
+Thank you for listening. We're happy to take questions. If you'd like, we can rerun any algorithm live with different parameters, or switch the traffic scenario and watch the ranking change. [Shlok leads the Q&A and passes questions on the intro to Sudiksha and on the four syllabus algorithms to Kevin.]
 
 ## Likely questions
 
 | Question | Who answers | Short answer |
 | --- | --- | --- |
-| Is the simulator realistic? | Shlok | It is a store-and-forward queue model, standard in signal-control research. It ignores spillback and lane changes; SUMO is the next step. |
-| Why only 3,000 evaluations? | Shlok | Same budget for all keeps it fair, and real simulators are far slower, so sample efficiency matters. |
+| Is the simulator realistic? | Sudiksha | It is a store-and-forward queue model, standard in signal-control research. It ignores spillback and lane changes; SUMO is the next step. |
+| Why only 3,000 evaluations? | Sudiksha | Same budget for all keeps it fair, and real simulators are far slower, so sample efficiency matters. |
 | Why did ACO lose? | Kevin | Discretisation: 12 levels give 5 s offset steps. More levels help but slow learning; try it live in the app. |
 | How did you pick parameters? | Kevin | Standard published defaults (PSO constriction 0.72/1.49, CMA-ES default λ). Every one is adjustable in the app. |
-| Why is CMA-ES not clearly best? | Sudiksha | One seed converged early. Its best run was near the top; IPOP restarts are the usual fix. |
-| Isn't Max-Pressure unfair to compare? | Sudiksha | It is a different paradigm, which is the point: it shows when optimising a fixed plan is worth it. |
-| Are the differences significant? | Sudiksha | Top four are within 0.8 s; SA vs ACO is clear (1.4 s apart, SDs ≈ 0.1–0.5). A rank test would be next. |
+| Why is CMA-ES not clearly best? | Shlok | One seed converged early. Its best run was near the top; IPOP restarts are the usual fix. |
+| Isn't Max-Pressure unfair to compare? | Shlok | It is a different paradigm, which is the point: it shows when optimising a fixed plan is worth it. |
+| Are the differences significant? | Shlok | Top four are within 0.8 s; SA vs ACO is clear (1.4 s apart, SDs ≈ 0.1–0.5). A rank test would be next. |

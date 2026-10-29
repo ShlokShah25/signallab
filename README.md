@@ -51,6 +51,9 @@ On a **balanced grid**, Max-Pressure wins outright (20.98 s against 28.71 s for 
 - `core.js`: the traffic simulator and all six algorithms.
 - `bench.js`: precomputed 10-seed benchmark results.
 - `SCRIPT.md`: the presentation script, split between the three of us.
+- `Signal-Lab-Presentation.pdf`: the slides.
+
+**Speaking order:** Sudiksha (slides 1–5) → Kevin (6–11) → Shlok (12–18 and Q&A).
 
 ## References
 
